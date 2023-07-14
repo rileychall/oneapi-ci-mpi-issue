@@ -1,0 +1,36 @@
+name: Fortran CI
+
+on:
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
+
+env:
+    LINUX_HPCKIT_URL: https:/registrationcenter-download.intel.com/akdlm/IRC_NAS/1ff1b38a-8218-4c53-9956-f0b264de35a4/l_HPCKit_p_2023.1.0.46346_offline.sh
+    LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
+    CACHE_NUMBER: 7
+
+jobs:
+    build:
+        runs-on: ubuntu-20.04
+        defaults:
+            run:
+                shell: bash
+        steps:
+            - uses: actions/checkout@v2
+            - name: cache install
+              id: cache-install
+              uses: actions/cache@v2
+              with:
+                  path: |
+                      /opt/intel/oneapi/compiler
+                  key: install-${{ env.CACHE_NUMBER }}-${{ env.LINUX_HPCKIT_URL }}-${{ env.LINUX_FORTRAN_COMPONENTS_WEB }}-compiler-${{ hashFiles('**/scripts/cache_exclude_linux.sh') }}
+            - name: install
+              if: steps.cache-install.outputs.cache-hit != 'true'
+              run: scripts/install_linux.sh $LINUX_HPCKIT_URL $LINUX_FORTRAN_COMPONENTS_WEB
+            - name: build
+              run: scripts/build_linux.sh
+            - name: exclude unused files from cache
+              if: steps.cache-install.outputs.cache-hit != 'true'
+              run: scripts/cache_exclude_linux.sh
